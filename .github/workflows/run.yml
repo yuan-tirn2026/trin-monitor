@@ -1,26 +1,38 @@
-name: Fetch TRIN Data
+name: Daily TRIN Push
+
 on:
   schedule:
-    - cron: '0 3 * * 1-5'
-  workflow_dispatch:
+    # UTC时间 07:30 也就是北京时间 15:30，周一到周五运行
+    - cron: '30 7 * * 1-5'
+  workflow_dispatch: # 允许你手动点击运行测试
 
 jobs:
-  run:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # 允许修改仓库文件
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Run fetch script
-        run: python fetch_trin.py
-      - name: Commit csv
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
-          git add trin_history.csv
-          git commit -m "auto update trin data" || echo "no new data"
-          git push
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run script
+      run: python app.py
+
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add trin_history.csv
+        git commit -m "Update TRIN data" || exit 0
+        git push
